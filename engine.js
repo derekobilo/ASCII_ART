@@ -432,7 +432,8 @@ function renderFrame(timestamp, sourceEl, callbacks) {
     const cellW = fontSize * .6, cellH = fontSize * (S.lineSpacing / 100);
     const appEl = document.getElementById('app');
     const sidebarOpen = document.body.classList.contains('sidebar-open');
-    const availW = window.innerWidth - (sidebarOpen ? 300 : 0);
+    const isMobile = window.innerWidth <= 768;
+    const availW = window.innerWidth - (!isMobile && sidebarOpen ? 300 : 0);
     const availH = window.innerHeight - 52;
     const cols = Math.floor(availW / cellW), rows = Math.floor(availH / cellH);
     if (cols < 2 || rows < 2) return;

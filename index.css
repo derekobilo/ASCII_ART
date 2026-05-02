@@ -1069,6 +1069,10 @@ body.sidebar-open #toast-container {
 }
 
 /* ── Responsive ────────────────────────────────────── */
+.mobile-close-btn {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .mode-label {
     display: none;
@@ -1079,9 +1083,14 @@ body.sidebar-open #toast-container {
   }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 768px) {
   :root {
     --sidebar-w: 100vw;
+    --tab-w: 48px;
+  }
+
+  .logo-icon {
+    font-size: 14px;
   }
 
   .logo-text,
@@ -1091,5 +1100,93 @@ body.sidebar-open #toast-container {
 
   .toolbar-sep {
     display: none;
+  }
+
+  #toolbar {
+    padding: 0 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  #toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .toolbar-center {
+    flex: none;
+    margin: 0 8px;
+  }
+
+  .toolbar-right {
+    flex: none;
+  }
+
+  body.sidebar-open #app {
+    right: 0;
+  }
+
+  #sidebar {
+    z-index: 200;
+    border-left: none;
+  }
+
+  .mobile-close-btn {
+    display: flex;
+    color: var(--danger);
+    font-size: 14px;
+    margin-top: auto;
+  }
+
+  .tab-panel {
+    padding-bottom: 60px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    width: 18px;
+    height: 18px;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+  }
+
+  .panel-body {
+    padding: 14px;
+    gap: 14px;
+  }
+
+  .modal-card {
+    padding: 20px;
+  }
+
+  .shortcut-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #toast-container {
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    align-items: center;
+  }
+
+  body.sidebar-open #toast-container {
+    right: 8px;
+  }
+
+  #histogram-canvas {
+    width: 160px;
+    height: 40px;
+    bottom: 44px;
+    left: 8px;
+  }
+
+  #status-bar {
+    font-size: 9px;
+    padding: 4px 12px;
+    bottom: 8px;
+    white-space: nowrap;
   }
 }

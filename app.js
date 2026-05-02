@@ -329,6 +329,7 @@
     $('btn-pip').addEventListener('click', togglePiP);
     $('btn-fullscreen').addEventListener('click', toggleFullscreen);
     $('btn-sidebar-toggle').addEventListener('click', toggleSidebar);
+    $('btn-close-sidebar').addEventListener('click', toggleSidebar);
     $('btn-help').addEventListener('click', () => toggleModal(true));
     $('btn-close-modal').addEventListener('click', () => toggleModal(false));
     $('shortcuts-modal').querySelector('.modal-backdrop').addEventListener('click', () => toggleModal(false));
