@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="Advanced canvas-rendered ASCII art camera with 8 render modes, OpenCV-inspired computer vision pipeline, real-time processing, and production-grade export tools.">
+  <title>ASCII ART CAM — Advanced</title>
+  <link rel="stylesheet" href="index.css">
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+</head>
+
+<body>
+
+  <!-- ══════════ TOOLBAR ══════════ -->
+  <header id="toolbar">
+    <div class="toolbar-left">
+      <div class="logo" title="ASCII ART CAM">
+        <span class="logo-icon">▓▒░</span>
+        <span class="logo-text">ASCII<span class="logo-highlight">CAM</span></span>
+        <span class="logo-version">PRO</span>
+      </div>
+    </div>
+    <div class="toolbar-center">
+      <div class="mode-group" role="radiogroup" aria-label="Render Mode">
+        <button class="mode-btn active" data-mode="color" title="Color ASCII (1)"><span class="mode-num">1</span><span
+            class="mode-label">Color</span></button>
+        <button class="mode-btn" data-mode="mono" title="Mono Phosphor (2)"><span class="mode-num">2</span><span
+            class="mode-label">Mono</span></button>
+        <button class="mode-btn" data-mode="edge" title="Edge Detection (3)"><span class="mode-num">3</span><span
+            class="mode-label">Edge</span></button>
+        <button class="mode-btn" data-mode="thermal" title="Thermal (4)"><span class="mode-num">4</span><span
+            class="mode-label">Thermal</span></button>
+        <span class="mode-divider"></span>
+        <button class="mode-btn" data-mode="matrix" title="Matrix Rain (5)"><span class="mode-num">5</span><span
+            class="mode-label">Matrix</span></button>
+        <button class="mode-btn" data-mode="braille" title="Braille (6)"><span class="mode-num">6</span><span
+            class="mode-label">Braille</span></button>
+        <button class="mode-btn" data-mode="halftone" title="Halftone (7)"><span class="mode-num">7</span><span
+            class="mode-label">Halftone</span></button>
+        <button class="mode-btn" data-mode="motion" title="Motion Detection (8)"><span class="mode-num">8</span><span
+            class="mode-label">Motion</span></button>
+      </div>
+    </div>
+    <div class="toolbar-right">
+      <button id="btn-screenshot" class="icon-btn" title="Screenshot (Space)"><span
+          class="icon-emoji">📸</span></button>
+      <button id="btn-record" class="icon-btn" title="Record WebM (R)"><span class="icon-emoji">⏺</span></button>
+      <button id="btn-txt" class="icon-btn" title="Export TXT (T)"><span class="icon-emoji">📄</span></button>
+      <span class="toolbar-sep"></span>
+      <button id="btn-mirror" class="icon-btn" title="Mirror (M)"><span class="icon-emoji">🪞</span></button>
+      <button id="btn-pip" class="icon-btn" title="Picture-in-Picture (P)"><span class="icon-emoji">🖼️</span></button>
+      <button id="btn-fullscreen" class="icon-btn" title="Fullscreen (F)"><span class="icon-emoji">⛶</span></button>
+      <button id="btn-help" class="icon-btn" title="Shortcuts (?)"><span class="icon-emoji">❓</span></button>
+      <button id="btn-sidebar-toggle" class="icon-btn" title="Settings Panel (I)"><span
+          class="icon-emoji">⚙️</span></button>
+    </div>
+  </header>
+
+  <!-- ══════════ MAIN AREA ══════════ -->
+  <main id="app">
+    <!-- Drop zone overlay -->
+    <div id="drop-zone" class="hidden">
+      <div class="drop-zone-inner">
+        <span class="drop-icon">📁</span>
+        <span class="drop-text">Drop image to render as ASCII</span>
+      </div>
+    </div>
+    <!-- Onboarding -->
+    <div id="onboarding">
+      <div class="onboard-card">
+        <div class="onboard-icon">▓▒░█▒▓</div>
+        <h2>ASCII ART CAM <span class="pro-badge">PRO</span></h2>
+        <p>Grant camera access to begin, or drag & drop an image.</p>
+        <button id="btn-start-camera" class="btn-primary">Enable Camera</button>
+        <label class="btn-secondary" id="btn-load-image">
+          Load Image
+          <input type="file" id="file-input" accept="image/*" hidden>
+        </label>
+        <div class="onboard-shortcuts">
+          Press <kbd>?</kbd> for keyboard shortcuts
+        </div>
+      </div>
+    </div>
+    <canvas id="ascii-canvas"></canvas>
+    <!-- Mini histogram -->
+    <canvas id="histogram-canvas" width="256" height="64" title="Live Histogram"></canvas>
+    <!-- Status bar -->
+    <div id="status-bar">
+      <span id="fps-display">0 FPS</span>
+      <span id="resolution-display">—</span>
+      <span id="mode-display">COLOR</span>
+      <span id="record-indicator" class="hidden">● REC</span>
+    </div>
+  </main>
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside id="sidebar">
+    <!-- Tabs -->
+    <nav class="sidebar-tabs" role="tablist">
+      <button class="tab-btn active" data-tab="tab-camera" title="Camera & Display">📷</button>
+      <button class="tab-btn" data-tab="tab-filters" title="Filters & Pipeline">🎨</button>
+      <button class="tab-btn" data-tab="tab-cv" title="Computer Vision">🧠</button>
+      <button class="tab-btn" data-tab="tab-charset" title="Characters">🔤</button>
+      <button class="tab-btn" data-tab="tab-presets" title="Presets">💾</button>
+    </nav>
+    <div class="sidebar-inner">
+
+      <!-- ── TAB: Camera & Display ── -->
+      <div class="tab-panel active" id="tab-camera">
+        <section class="panel">
+          <h3 class="panel-title">Camera</h3>
+          <div class="panel-body">
+            <label>Device<select id="camera-select">
+                <option>Detecting…</option>
+              </select></label>
+            <label>FPS Limit
+              <div class="range-row"><input type="range" id="fps-limit" min="1" max="60" value="30"><span
+                  id="fps-limit-val">30</span></div>
+            </label>
+            <label>Zoom
+              <div class="range-row"><input type="range" id="zoom" min="100" max="400" value="100"><span
+                  id="val-zoom">100%</span></div>
+            </label>
+          </div>
+        </section>
+        <section class="panel">
+          <h3 class="panel-title">Display</h3>
+          <div class="panel-body">
+            <label>Font Size
+              <div class="range-row"><input type="range" id="font-size" min="3" max="24" value="10"><span
+                  id="val-fontsize">10</span></div>
+            </label>
+            <label>Line Spacing
+              <div class="range-row"><input type="range" id="line-spacing" min="80" max="150" value="100"><span
+                  id="val-linespacing">100%</span></div>
+            </label>
+            <label>Background Opacity
+              <div class="range-row"><input type="range" id="bg-opacity" min="0" max="100" value="100"><span
+                  id="val-bgopacity">100%</span></div>
+            </label>
+            <label class="toggle-label"><input type="checkbox" id="toggle-scanlines"><span>CRT Scanlines</span></label>
+            <label class="toggle-label"><input type="checkbox" id="toggle-glow"><span>Character Glow</span></label>
+          </div>
+        </section>
+        <section class="panel" id="mono-panel">
+          <h3 class="panel-title">Mono Color</h3>
+          <div class="panel-body">
+            <div class="color-chips">
+              <button class="color-chip active" data-color="#00ff41" style="--chip:#00ff41" title="Green">G</button>
+              <button class="color-chip" data-color="#ffb000" style="--chip:#ffb000" title="Amber">A</button>
+              <button class="color-chip" data-color="#00e5ff" style="--chip:#00e5ff" title="Cyan">C</button>
+              <button class="color-chip" data-color="#ff1744" style="--chip:#ff1744" title="Red">R</button>
+              <button class="color-chip" data-color="#ffffff" style="--chip:#ffffff" title="White">W</button>
+              <button class="color-chip" data-color="#e040fb" style="--chip:#e040fb" title="Purple">P</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ── TAB: Filters & Pipeline ── -->
+      <div class="tab-panel" id="tab-filters">
+        <section class="panel">
+          <h3 class="panel-title">Image Adjustments</h3>
+          <div class="panel-body">
+            <label>Brightness<div class="range-row"><input type="range" id="filter-brightness" min="0" max="300"
+                  value="100"><span id="val-brightness">100</span></div></label>
+            <label>Contrast<div class="range-row"><input type="range" id="filter-contrast" min="0" max="300"
+                  value="100"><span id="val-contrast">100</span></div></label>
+            <label>Saturation<div class="range-row"><input type="range" id="filter-saturation" min="0" max="300"
+                  value="100"><span id="val-saturation">100</span></div></label>
+            <label>Hue Rotate<div class="range-row"><input type="range" id="filter-hue" min="0" max="360"
+                  value="0"><span id="val-hue">0°</span></div></label>
+            <label>Blur<div class="range-row"><input type="range" id="filter-blur" min="0" max="20" value="0"
+                  step="0.5"><span id="val-blur">0</span></div></label>
+            <label>Sharpen<div class="range-row"><input type="range" id="filter-sharpen" min="0" max="100"
+                  value="0"><span id="val-sharpen">0</span></div></label>
+            <button class="btn-small" id="btn-reset-filters">Reset All</button>
+          </div>
+        </section>
+        <section class="panel">
+          <h3 class="panel-title">Tone Processing</h3>
+          <div class="panel-body">
+            <label class="toggle-label"><input type="checkbox" id="toggle-dithering"><span>Floyd-Steinberg
+                Dithering</span></label>
+            <label class="toggle-label"><input type="checkbox" id="toggle-histeq"><span>Histogram
+                Equalization</span></label>
+            <label class="toggle-label"><input type="checkbox" id="toggle-invert"><span>Invert / Negative</span></label>
+            <label class="toggle-label"><input type="checkbox" id="toggle-autolevel"><span>Auto Levels</span></label>
+            <label>Posterize Levels<div class="range-row"><input type="range" id="posterize" min="2" max="32"
+                  value="32"><span id="val-posterize">Off</span></div></label>
+            <label>Threshold<div class="range-row"><input type="range" id="threshold" min="0" max="255" value="0"><span
+                  id="val-threshold">Off</span></div></label>
+          </div>
+        </section>
+      </div>
+
+      <!-- ── TAB: Computer Vision ── -->
+      <div class="tab-panel" id="tab-cv">
+        <section class="panel">
+          <h3 class="panel-title">Edge Detection</h3>
+          <div class="panel-body">
+            <label>Algorithm
+              <select id="edge-algo">
+                <option value="sobel">Sobel Operator</option>
+                <option value="canny">Canny Edge</option>
+                <option value="laplacian">Laplacian</option>
+              </select>
+            </label>
+            <label>Edge Threshold Low<div class="range-row"><input type="range" id="edge-low" min="0" max="255"
+                  value="30"><span id="val-edge-low">30</span></div></label>
+            <label>Edge Threshold High<div class="range-row"><input type="range" id="edge-high" min="0" max="255"
+                  value="100"><span id="val-edge-high">100</span></div></label>
+          </div>
+        </section>
+        <section class="panel">
+          <h3 class="panel-title">Morphology</h3>
+          <div class="panel-body">
+            <label>Operation
+              <select id="morph-op">
+                <option value="none">None</option>
+                <option value="erode">Erode</option>
+                <option value="dilate">Dilate</option>
+                <option value="open">Open (Erode+Dilate)</option>
+                <option value="close">Close (Dilate+Erode)</option>
+              </select>
+            </label>
+            <label>Kernel Size<div class="range-row"><input type="range" id="morph-size" min="1" max="5" value="1"><span
+                  id="val-morph-size">1</span></div></label>
+          </div>
+        </section>
+        <section class="panel">
+          <h3 class="panel-title">Detection</h3>
+          <div class="panel-body">
+            <label class="toggle-label"><input type="checkbox" id="toggle-face"><span>Face Detection
+                Overlay</span></label>
+            <label class="toggle-label"><input type="checkbox" id="toggle-motion-highlight"><span>Motion
+                Highlight</span></label>
+            <label>Motion Sensitivity<div class="range-row"><input type="range" id="motion-sens" min="5" max="100"
+                  value="30"><span id="val-motion-sens">30</span></div></label>
+          </div>
+        </section>
+        <section class="panel">
+          <h3 class="panel-title">Gaussian Blur (CV)</h3>
+          <div class="panel-body">
+            <label>Kernel Radius<div class="range-row"><input type="range" id="gauss-radius" min="0" max="10"
+                  value="0"><span id="val-gauss">0</span></div></label>
+            <label>Sigma<div class="range-row"><input type="range" id="gauss-sigma" min="1" max="50" value="14"
+                  step="1"><span id="val-sigma">1.4</span></div></label>
+          </div>
+        </section>
+      </div>
+
+      <!-- ── TAB: Character Set ── -->
+      <div class="tab-panel" id="tab-charset">
+        <section class="panel">
+          <h3 class="panel-title">Character Set</h3>
+          <div class="panel-body">
+            <label>Preset
+              <select id="charset-select">
+                <option value="standard">Standard (70-char)</option>
+                <option value="block">Block ░▒▓█</option>
+                <option value="minimal">Minimal</option>
+                <option value="dense">Dense</option>
+                <option value="matrix">Matrix</option>
+                <option value="binary">Binary 01</option>
+                <option value="braille">Braille Dots</option>
+                <option value="emoji">Emoji</option>
+                <option value="custom">Custom…</option>
+              </select>
+            </label>
+            <label id="custom-charset-row" class="hidden">Custom Characters
+              <input type="text" id="custom-charset" placeholder="Dark → Light" value=" .:-=+*#%@">
+            </label>
+          </div>
+        </section>
+        <section class="panel">
+          <h3 class="panel-title">Preview</h3>
+          <div class="panel-body">
+            <div id="charset-preview" class="charset-preview"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ── TAB: Presets ── -->
+      <div class="tab-panel" id="tab-presets">
+        <section class="panel">
+          <h3 class="panel-title">Quick Presets</h3>
+          <div class="panel-body preset-grid">
+            <button class="preset-btn" data-preset="default">🔄 Default</button>
+            <button class="preset-btn" data-preset="retro">🖥️ Retro CRT</button>
+            <button class="preset-btn" data-preset="hacker">💻 Hacker</button>
+            <button class="preset-btn" data-preset="neon">💜 Neon</button>
+            <button class="preset-btn" data-preset="blueprint">📐 Blueprint</button>
+            <button class="preset-btn" data-preset="surveillance">📹 Surveillance</button>
+            <button class="preset-btn" data-preset="thermal-pro">🌡️ Thermal Pro</button>
+            <button class="preset-btn" data-preset="sketch">✏️ Sketch</button>
+          </div>
+        </section>
+        <section class="panel">
+          <h3 class="panel-title">Custom Presets</h3>
+          <div class="panel-body">
+            <button class="btn-small btn-accent" id="btn-save-preset">💾 Save Current</button>
+            <div id="custom-presets-list" class="preset-list"></div>
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ══════════ SHORTCUTS MODAL ══════════ -->
+  <div id="shortcuts-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <h2>⌨️ Keyboard Shortcuts</h2>
+      <div class="shortcut-grid">
+        <div class="shortcut-section">
+          <h4>Modes</h4>
+          <div class="shortcut-row"><kbd>1</kbd><span>Color ASCII</span></div>
+          <div class="shortcut-row"><kbd>2</kbd><span>Mono Phosphor</span></div>
+          <div class="shortcut-row"><kbd>3</kbd><span>Edge Detection</span></div>
+          <div class="shortcut-row"><kbd>4</kbd><span>Thermal</span></div>
+          <div class="shortcut-row"><kbd>5</kbd><span>Matrix Rain</span></div>
+          <div class="shortcut-row"><kbd>6</kbd><span>Braille</span></div>
+          <div class="shortcut-row"><kbd>7</kbd><span>Halftone</span></div>
+          <div class="shortcut-row"><kbd>8</kbd><span>Motion</span></div>
+        </div>
+        <div class="shortcut-section">
+          <h4>Actions</h4>
+          <div class="shortcut-row"><kbd>Space</kbd><span>Screenshot (PNG)</span></div>
+          <div class="shortcut-row"><kbd>R</kbd><span>Record / Stop</span></div>
+          <div class="shortcut-row"><kbd>T</kbd><span>Export TXT</span></div>
+          <div class="shortcut-row"><kbd>F</kbd><span>Fullscreen</span></div>
+          <div class="shortcut-row"><kbd>M</kbd><span>Mirror</span></div>
+          <div class="shortcut-row"><kbd>P</kbd><span>Picture-in-Picture</span></div>
+          <div class="shortcut-row"><kbd>I</kbd><span>Toggle Sidebar</span></div>
+          <div class="shortcut-row"><kbd>N</kbd><span>Invert</span></div>
+          <div class="shortcut-row"><kbd>D</kbd><span>Dithering</span></div>
+          <div class="shortcut-row"><kbd>G</kbd><span>Glow</span></div>
+          <div class="shortcut-row"><kbd>?</kbd><span>This Help</span></div>
+          <div class="shortcut-row"><kbd>Esc</kbd><span>Close</span></div>
+        </div>
+      </div>
+      <button class="btn-primary btn-close-modal" id="btn-close-modal">Got it</button>
+    </div>
+  </div>
+
+  <!-- ══════════ TOAST CONTAINER ══════════ -->
+  <div id="toast-container"></div>
+
+  <!-- Hidden elements -->
+  <video id="camera-video" autoplay playsinline muted></video>
+  <canvas id="offscreen-cv" class="hidden-canvas"></canvas>
+
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
